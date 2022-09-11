@@ -1,0 +1,181 @@
+<html>
+<body>
+
+<div id="divUi">
+	<h3>Image Gallery</h3>
+
+	<p>
+		Upload an image file or files to add to a list of images.
+		Then select an image name from the list to view it.
+	</p>
+
+	<label>Image files to Load:</label>
+	<input
+		type="file"
+		multiple="multiple"
+		onchange="UserInterface.Instance().inputFile_Changed(this);"
+	>
+	</input>
+	<br />
+
+	<label>Images Loaded:</label>
+	<br />
+	<select
+		id="selectImages"
+		onchange="UserInterface.Instance().selectImages_Changed(this);"
+	>
+	</select>
+	<br />
+
+	<label>Image Selected:</label>
+	<br />
+	<div id="divImageSelected"></div>
+	<br />
+
+</div>
+
+<script type="text/javascript">
+
+class Globals
+{
+	constructor()
+	{
+		this.imageGroup = new ImageGroup();
+	}
+
+	static Instance()
+	{
+		if (Globals._instance == null)
+		{
+			Globals._instance = new Globals();
+		}
+
+		return Globals._instance;
+	}
+}
+
+class Image2
+{
+	constructor(file)
+	{
+		this.name = file.name;
+		this.file = file;
+	}
+
+	userInterfaceUpdate(userInterface, callback)
+	{
+		var image = this;
+
+		var fileReader = new FileReader();
+		fileReader.onload = (event) =>
+		{
+			var d = document;
+			var domElement = d.createElement("img");
+			domElement.style.border = "1px solid";
+			domElement.src = event.target.result;
+			image.domElement = domElement;
+			callback.call(userInterface, image);
+		}
+		fileReader.readAsDataURL(this.file);
+	}
+}
+
+class ImageGroup
+{
+	constructor(images)
+	{
+		this.images = images || [];
+		this._imageSelectedIndex = 0;
+	}
+
+	imageSelectByName(value, userInterfaceToUpdate)
+	{
+		var imageToSelect = this.images.find(x => x.name == value);
+		if (imageToSelect != null)
+		{
+			var indexToSelect = this.images.indexOf(imageToSelect);
+			this._imageSelectedIndex = indexToSelect
+		}
+
+		this.userInterfaceUpdate(userInterfaceToUpdate);
+	}
+
+	imageSelected()
+	{
+		return this.images[this._imageSelectedIndex];
+	}
+
+	userInterfaceUpdate(userInterface)
+	{
+		var d = document;
+
+		var selectImages = d.getElementById("selectImages");
+		selectImages.innerHTML = "";
+		for (var i = 0; i < this.images.length; i++)
+		{
+			var image = this.images[i];
+			var imageAsOption = d.createElement("option");
+			imageAsOption.innerHTML = image.name;
+			selectImages.appendChild(imageAsOption);
+		}
+		selectImages.selectedIndex = this._imageSelectedIndex;
+
+		var imageSelected = this.imageSelected();
+		imageSelected.userInterfaceUpdate
+		(
+			userInterface,
+			(imageLoaded) =>
+			{
+				var divImageSelected =
+					d.getElementById("divImageSelected");
+				divImageSelected.innerHTML = "";
+				divImageSelected.appendChild(imageLoaded.domElement);
+			}
+		);
+	}
+}
+
+class UserInterface
+{
+	static Instance()
+	{
+		if (UserInterface._instance == null)
+		{
+			UserInterface._instance = new UserInterface();
+		}
+		return UserInterface._instance;
+	}
+
+	inputFile_Changed(inputFile)
+	{
+		var files = inputFile.files;
+		var imageGroup = Globals.Instance().imageGroup;
+		var images = imageGroup.images;
+		for (var i = 0; i < files.length; i++)
+		{
+			var file = files[i];
+			var image = new Image2(file);
+			var doAnyImagesWithNameAlreadyExist =
+				images.some(x => x.name == image.name);
+			if (doAnyImagesWithNameAlreadyExist == false)
+			{
+				images.push(image);
+			}
+			imageGroup.imageSelectByName(image.name, this);
+		}
+
+		imageGroup.userInterfaceUpdate(this);
+	}
+
+	selectImages_Changed(selectImages)
+	{
+		var imageGroup = Globals.Instance().imageGroup;
+		var imageToSelectName = selectImages.value;
+		imageGroup.imageSelectByName(imageToSelectName);
+	}
+}
+
+</script>
+
+</body>
+</html>
